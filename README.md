@@ -99,3 +99,7 @@ Contrato de API esperado por `client.js`:
 - Migrar a persistência do localStorage para o banco de dados real
 - Adicionar testes automatizados (ex.: Vitest + React Testing Library)
 - Implementar "Recuperar senha" (fora do escopo da Iteração 1)
+
+## Iteração 2
+
+Branch iteracao2 criado para o desenvolvimento da Iteração 2.
