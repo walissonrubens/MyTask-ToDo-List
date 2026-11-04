@@ -12,6 +12,29 @@ const TABS = [
   { key: "todas", label: "Todas" },
 ];
 
+const SORT_OPTIONS = [
+  { key: "recentes", label: "Mais recentes" },
+  { key: "prazo", label: "Prazo (mais próximo)" },
+  { key: "prioridade", label: "Prioridade (alta primeiro)" },
+];
+
+const PRIORITY_ORDER = { alta: 0, media: 1, baixa: 2 };
+
+function sortTasks(list, sortBy) {
+  const sorted = [...list];
+  if (sortBy === "prazo") {
+    // Tarefas sem prazo vão para o final da lista.
+    sorted.sort((a, b) => (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31"));
+  } else if (sortBy === "prioridade") {
+    sorted.sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 3) - (PRIORITY_ORDER[b.priority] ?? 3));
+  }
+  return sorted; // "recentes": a API já devolve da mais nova para a mais antiga
+}
+
+function apiMessage(err, fallback) {
+  return err.response?.data?.message || fallback;
+}
+
 function isOverdue(task) {
   if (!task.dueDate || task.completed) return false;
   const today = new Date();
@@ -24,6 +47,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("pendentes");
+  const [sortBy, setSortBy] = useState("recentes");
 
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -47,19 +71,23 @@ export default function Dashboard() {
   }
 
   // Caso de uso: Criar tarefa / Editar tarefa
+  // Erros de validação são exibidos dentro do próprio formulário (TaskForm).
   async function handleFormSubmit(formData) {
-    try {
-      if (editingTask) {
-        const updated = await updateTask(editingTask.id, formData);
-        setTasks((prev) => prev.map((t) => (t.id === editingTask.id ? updated : t)));
-      } else {
-        const created = await createTask(formData);
-        setTasks((prev) => [created, ...prev]);
-      }
-      closeForm();
-    } catch (err) {
-      setError("Não foi possível salvar a tarefa. Tente novamente.");
+    const payload = {
+      title: formData.title,
+      description: formData.description,
+      dueDate: formData.dueDate,
+      priority: formData.priority,
+    };
+    if (editingTask) {
+      const updated = await updateTask(editingTask.id, payload);
+      setTasks((prev) => prev.map((t) => (t.id === editingTask.id ? updated : t)));
+    } else {
+      const created = await createTask(payload);
+      setTasks((prev) => [created, ...prev]);
     }
+    setError("");
+    closeForm();
   }
 
   // Caso de uso: Marcar tarefa como concluída
@@ -68,7 +96,7 @@ export default function Dashboard() {
       const updated = await completeTask(task.id);
       setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
     } catch (err) {
-      setError("Não foi possível atualizar o status da tarefa.");
+      setError(apiMessage(err, "Não foi possível atualizar o status da tarefa."));
     }
   }
 
@@ -79,7 +107,7 @@ export default function Dashboard() {
       await deleteTask(taskToDelete.id);
       setTasks((prev) => prev.filter((t) => t.id !== taskToDelete.id));
     } catch (err) {
-      setError("Não foi possível excluir a tarefa.");
+      setError(apiMessage(err, "Não foi possível excluir a tarefa."));
     } finally {
       setTaskToDelete(null);
     }
@@ -100,12 +128,15 @@ export default function Dashboard() {
     setEditingTask(null);
   }
 
-  const filteredTasks = tasks.filter((task) => {
-    if (activeTab === "pendentes") return !task.completed && !isOverdue(task);
-    if (activeTab === "concluidas") return !!task.completed;
-    if (activeTab === "atrasadas") return isOverdue(task);
-    return true;
-  });
+  const filteredTasks = sortTasks(
+    tasks.filter((task) => {
+      if (activeTab === "pendentes") return !task.completed && !isOverdue(task);
+      if (activeTab === "concluidas") return !!task.completed;
+      if (activeTab === "atrasadas") return isOverdue(task);
+      return true;
+    }),
+    sortBy
+  );
 
   return (
     <div>
@@ -120,16 +151,29 @@ export default function Dashboard() {
 
         {error && <div className="error-msg">{error}</div>}
 
-        <div className="tabs">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              className={`tab ${activeTab === tab.key ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="toolbar">
+          <div className="tabs">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                className={`tab ${activeTab === tab.key ? "active" : ""}`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <label className="sort-control">
+            Ordenar por
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.key} value={opt.key}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         {loading ? (
