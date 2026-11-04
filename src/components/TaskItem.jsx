@@ -4,6 +4,8 @@ function formatDate(dateStr) {
   return d.toLocaleDateString("pt-BR");
 }
 
+const PRIORITY_LABELS = { baixa: "Baixa", media: "Média", alta: "Alta" };
+
 function isOverdue(task) {
   if (!task.dueDate || task.completed) return false;
   const today = new Date();
@@ -31,7 +33,7 @@ export default function TaskItem({ task, onToggleComplete, onEdit, onDelete }) {
         <div className="task-meta">
           {task.priority && (
             <span className={`badge badge-priority-${task.priority}`}>
-              Prioridade: {task.priority}
+              Prioridade: {PRIORITY_LABELS[task.priority] || task.priority}
             </span>
           )}
           {task.dueDate && (

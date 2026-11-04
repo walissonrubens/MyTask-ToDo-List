@@ -19,7 +19,8 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const isLoginRequest = error.config?.url?.includes("/auth/login");
+    if (error.response && error.response.status === 401 && !isLoginRequest) {
       localStorage.removeItem("mytask_token");
       localStorage.removeItem("mytask_user");
       if (window.location.pathname !== "/login") {

@@ -18,8 +18,8 @@ export default function Register() {
     if (!form.name.trim() || !form.email.trim() || !form.password) {
       return "Preencha todos os campos obrigatórios.";
     }
-    if (form.password.length < 8) {
-      return "A senha deve ter no mínimo 8 caracteres.";
+    if (form.password.length < 8 || !/[A-Za-z]/.test(form.password) || !/\d/.test(form.password)) {
+      return "A senha deve ter no mínimo 8 caracteres, com letras e números.";
     }
     if (form.password !== form.confirmPassword) {
       return "As senhas não coincidem.";
@@ -76,7 +76,7 @@ export default function Register() {
 
           <div className="field">
             <label>Senha</label>
-            <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Mínimo 8 caracteres" />
+            <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Mínimo 8 caracteres, com letras e números" />
           </div>
 
           <div className="field">
