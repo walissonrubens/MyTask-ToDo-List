@@ -30,10 +30,15 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    await logoutUser();
-    localStorage.removeItem("mytask_token");
-    localStorage.removeItem("mytask_user");
-    setUser(null);
+    try {
+      await logoutUser();
+    } catch {
+      // Mesmo que o servidor não responda, a sessão local é encerrada.
+    } finally {
+      localStorage.removeItem("mytask_token");
+      localStorage.removeItem("mytask_user");
+      setUser(null);
+    }
   }
 
   const value = { user, loading, login, register, logout, isAuthenticated: !!user };
