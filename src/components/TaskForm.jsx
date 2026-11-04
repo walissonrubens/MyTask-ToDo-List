@@ -2,9 +2,15 @@ import { useState } from "react";
 
 const emptyTask = { title: "", description: "", dueDate: "", priority: "media" };
 
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default function TaskForm({ initialData, onSubmit, onCancel }) {
   const [form, setForm] = useState(initialData || emptyTask);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const isEditing = !!initialData;
 
   function handleChange(e) {
@@ -12,14 +18,26 @@ export default function TaskForm({ initialData, onSubmit, onCancel }) {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!form.title.trim()) {
       setError("O título da tarefa é obrigatório.");
       return;
     }
+    if (!isEditing && form.dueDate && form.dueDate < todayISO()) {
+      setError("O prazo não pode ser uma data no passado.");
+      return;
+    }
     setError("");
-    onSubmit(form);
+    setSaving(true);
+    try {
+      await onSubmit(form);
+    } catch (err) {
+      // Mensagem de validação devolvida pela API (ex.: prazo inválido).
+      setError(err.response?.data?.message || "Não foi possível salvar a tarefa. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -55,7 +73,13 @@ export default function TaskForm({ initialData, onSubmit, onCancel }) {
 
           <div className="field">
             <label>Prazo</label>
-            <input type="date" name="dueDate" value={form.dueDate || ""} onChange={handleChange} />
+            <input
+              type="date"
+              name="dueDate"
+              value={form.dueDate || ""}
+              min={isEditing ? undefined : todayISO()}
+              onChange={handleChange}
+            />
           </div>
 
           <div className="field">
@@ -71,8 +95,8 @@ export default function TaskForm({ initialData, onSubmit, onCancel }) {
             <button type="button" className="btn btn-secondary" onClick={onCancel}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary">
-              {isEditing ? "Salvar Alterações" : "Salvar"}
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? "Salvando..." : isEditing ? "Salvar Alterações" : "Salvar"}
             </button>
           </div>
         </form>

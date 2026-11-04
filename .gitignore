@@ -1,0 +1,13 @@
+# Dependências
+node_modules/
+
+# Build do front-end
+dist/
+
+# Variáveis de ambiente locais (use os arquivos .env.example como modelo)
+.env
+server/.env
+
+# Logs e arquivos do sistema
+*.log
+.DS_Store
